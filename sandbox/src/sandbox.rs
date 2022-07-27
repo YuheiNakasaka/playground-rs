@@ -1,4 +1,4 @@
-use crate::{hello, world};
+use rand::prelude::*;
 
 macro_rules! range {
     ($stop:expr) => {
@@ -10,6 +10,22 @@ macro_rules! range {
     ($start:expr, $end:expr, $step:expr) => {
         ($start..$end).step_by($step)
     };
+}
+
+pub struct Hello;
+
+impl Hello {
+    pub fn say() -> i32 {
+        random()
+    }
+}
+
+pub struct World;
+
+impl World {
+    pub fn say() {
+        println!("World! {}", Hello::say());
+    }
 }
 
 struct John;
@@ -155,7 +171,7 @@ impl Sandbox {
             None => println!("Not found"),
         }
 
-        let unknown_val: i32 = hello::Hello::say();
+        let unknown_val: i32 = Hello::say();
         let known_val = match unknown_val {
             12 => 144,
             _ => -1,
@@ -167,7 +183,7 @@ impl Sandbox {
             item.say();
         }
 
-        world::World::say();
+        World::say();
 
         let x;
         let tmp;

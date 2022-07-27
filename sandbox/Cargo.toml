@@ -1,0 +1,12 @@
+[package]
+edition = "2021"
+name = "sandbox"
+version = "0.1.0"
+
+[dependencies]
+merkle_tree = {path = "../merkle_tree"}
+rand = "0.8.4"
+
+[[bin]]
+name = "sandbox"
+path = "src/main.rs"
