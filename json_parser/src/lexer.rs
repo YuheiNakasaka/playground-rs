@@ -82,7 +82,8 @@ impl Lexer {
                     self.scope = Scope::Number;
                     let mut tmp_string: String = String::new();
                     let mut tmp_char: char = char.clone();
-                    while tmp_char.to_string().parse::<f64>().is_ok() {
+                    while tmp_char != COMMA && tmp_char != RIGHT_BRACE && tmp_char != RIGHT_BRACKET
+                    {
                         tmp_string.push(tmp_char);
                         position += 1;
                         match self.input.chars().nth(position as usize) {
@@ -174,6 +175,20 @@ mod tests {
     }
 
     #[test]
+    fn float_number_value() {
+        let json = r#"3.14"#;
+        let ret = Lexer::new(json).run();
+        assert_eq!(ret, vec!["3.14"]);
+    }
+
+    #[test]
+    fn binint_number_value() {
+        let json = r#"6.62607e-34"#;
+        let ret = Lexer::new(json).run();
+        assert_eq!(ret, vec!["6.62607e-34"]);
+    }
+
+    #[test]
     fn true_value() {
         let json = r#"true"#;
         let ret = Lexer::new(json).run();
@@ -209,9 +224,9 @@ mod tests {
           "is_programmer": true,
           "is_married": false,
           "sex": null,
-          "x": [1, 2, 3],
+          "x": [1.2, 2, 3.5],
           "y": ["a", "b"],
-          "z": {"a": 1, "b": {"c": 2}},
+          "z": {"a": 1, "b": {"c": 2.5}},
         }"#;
         let ret = Lexer::new(json).run();
         assert_eq!(
@@ -255,11 +270,11 @@ mod tests {
                 "\"",
                 ":",
                 "[",
-                "1",
+                "1.2",
                 ",",
                 "2",
                 ",",
-                "3",
+                "3.5",
                 "]",
                 ",",
                 "\"",
@@ -296,7 +311,7 @@ mod tests {
                 "c",
                 "\"",
                 ":",
-                "2",
+                "2.5",
                 "}",
                 "}",
                 ",",
