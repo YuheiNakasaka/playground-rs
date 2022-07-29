@@ -2,4 +2,5 @@
 members = [
   "sandbox",
   "merkle_tree",
+  "json_parser",
 ]
