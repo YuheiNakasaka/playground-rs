@@ -1,19 +1,24 @@
-#[derive(Debug)]
-pub struct Lexer {
-    input: String,
-    scope: Scope,
+#[derive(Debug, PartialEq)]
+enum Scope {
+    Global,
+    String,
 }
 
-#[derive(PartialEq, Debug)]
-pub enum Scope {
-    Global,
-    Object,
-    Array,
-    Key,
-    String,
-    Number,
-    Boolean,
+#[derive(Debug, PartialEq)]
+pub enum Token {
+    LeftBrace,
+    RightBrace,
+    LeftBracket,
+    RightBracket,
+    Colon,
+    Comma,
+    DoubleQuote,
+    String(String),
+    Number(String),
+    True,
+    False,
     Null,
+    Eof,
 }
 
 const LEFT_BRACE: char = '{';
@@ -28,6 +33,12 @@ const INITIAL_FALSE: char = 'f';
 const INITIAL_NULL: char = 'n';
 const BACK_SLASH: char = '\\';
 
+#[derive(Debug)]
+pub struct Lexer {
+    input: String,
+    scope: Scope,
+}
+
 impl Lexer {
     pub fn new(input: &str) -> Lexer {
         Lexer {
@@ -36,50 +47,50 @@ impl Lexer {
         }
     }
 
-    pub fn run(&mut self) -> Vec<String> {
-        let mut tokens: Vec<String> = Vec::new();
+    pub fn run(&mut self) -> Vec<Token> {
+        let mut tokens: Vec<Token> = Vec::new();
         let mut position: usize = 0;
         while self.input.len() > position {
             let char: char = self.input.chars().nth(position as usize).unwrap();
             if self.scope != Scope::String {
                 if char == LEFT_BRACE {
-                    self.scope = Scope::Object;
-                    tokens.push(char.to_string());
+                    self.scope = Scope::Global;
+                    tokens.push(Token::LeftBrace);
                     position += 1;
                 } else if char == RIGHT_BRACE {
                     self.scope = Scope::Global;
-                    tokens.push(char.to_string());
+                    tokens.push(Token::RightBrace);
                     position += 1;
                 } else if char == LEFT_BRACKET {
-                    self.scope = Scope::Array;
-                    tokens.push(char.to_string());
+                    self.scope = Scope::Global;
+                    tokens.push(Token::LeftBracket);
                     position += 1;
                 } else if char == RIGHT_BRACKET {
                     self.scope = Scope::Global;
-                    tokens.push(char.to_string());
+                    tokens.push(Token::RightBracket);
                     position += 1;
                 } else if char == COLLON {
                     self.scope = Scope::Global;
-                    tokens.push(char.to_string());
+                    tokens.push(Token::Colon);
                     position += 1;
                 } else if char == COMMA {
                     self.scope = Scope::Global;
-                    tokens.push(char.to_string());
+                    tokens.push(Token::Comma);
                     position += 1;
                 } else if char == INITIAL_TRUE {
-                    self.scope = Scope::Boolean;
+                    self.scope = Scope::Global;
                     position += 3;
-                    tokens.push("true".to_string());
+                    tokens.push(Token::True);
                 } else if char == INITIAL_FALSE {
-                    self.scope = Scope::Boolean;
+                    self.scope = Scope::Global;
                     position += 4;
-                    tokens.push("false".to_string());
+                    tokens.push(Token::False);
                 } else if char == INITIAL_NULL {
-                    self.scope = Scope::Null;
+                    self.scope = Scope::Global;
                     position += 3;
-                    tokens.push("null".to_string());
+                    tokens.push(Token::Null);
                 } else if char.to_string().parse::<f64>().is_ok() {
-                    self.scope = Scope::Number;
+                    self.scope = Scope::Global;
                     let mut tmp_string: String = String::new();
                     let mut tmp_char: char = char.clone();
                     while tmp_char != COMMA && tmp_char != RIGHT_BRACE && tmp_char != RIGHT_BRACKET
@@ -91,10 +102,10 @@ impl Lexer {
                             None => break,
                         }
                     }
-                    tokens.push(tmp_string);
+                    tokens.push(Token::Number(tmp_string));
                 } else if char == DOUBLE_QUOTE {
                     self.scope = Scope::String;
-                    tokens.push(char.to_string());
+                    tokens.push(Token::DoubleQuote);
                     position += 1;
                 } else {
                     position += 1;
@@ -102,7 +113,7 @@ impl Lexer {
             } else {
                 if char == DOUBLE_QUOTE {
                     self.scope = Scope::Global;
-                    tokens.push(char.to_string());
+                    tokens.push(Token::DoubleQuote);
                     position += 1;
                 } else {
                     let mut tmp_string: String = String::new();
@@ -119,7 +130,7 @@ impl Lexer {
                             None => break,
                         }
                     }
-                    tokens.push(tmp_string);
+                    tokens.push(Token::String(tmp_string));
                 }
             }
         }
@@ -135,7 +146,8 @@ mod tests {
     fn empty_object() {
         let json = r#"{     }"#;
         let ret = Lexer::new(json).run();
-        assert_eq!(ret, vec!["{", "}"]);
+        let expected = vec![Token::LeftBrace, Token::RightBrace];
+        assert!(ret.eq(&expected));
     }
 
     #[test]
@@ -143,77 +155,98 @@ mod tests {
         let json = r#"{
         }"#;
         let ret = Lexer::new(json).run();
-        assert_eq!(ret, vec!["{", "}"]);
+        let expected = vec![Token::LeftBrace, Token::RightBrace];
+        assert!(ret.eq(&expected));
     }
 
     #[test]
     fn empty_array() {
         let json = r#"[]"#;
         let ret = Lexer::new(json).run();
-        assert_eq!(ret, vec!["[", "]"]);
+        let expected = vec![Token::LeftBracket, Token::RightBracket];
+        assert!(ret.eq(&expected));
     }
 
     #[test]
     fn filled_array() {
         let json = r#"[1,2]"#;
         let ret = Lexer::new(json).run();
-        assert_eq!(ret, vec!["[", "1", ",", "2", "]"]);
+        let expected = vec![
+            Token::LeftBracket,
+            Token::Number(String::from("1")),
+            Token::Comma,
+            Token::Number(String::from("2")),
+            Token::RightBracket,
+        ];
+        assert!(ret.eq(&expected));
     }
 
     #[test]
     fn number_value() {
         let json = r#"1"#;
         let ret = Lexer::new(json).run();
-        assert_eq!(ret, vec!["1"]);
+        let expected = vec![Token::Number(String::from("1"))];
+        assert!(ret.eq(&expected));
     }
 
     #[test]
     fn numbers_value() {
         let json = r#"123"#;
         let ret = Lexer::new(json).run();
-        assert_eq!(ret, vec!["123"]);
+        let expected = vec![Token::Number(String::from("123"))];
+        assert!(ret.eq(&expected));
     }
 
     #[test]
     fn float_number_value() {
         let json = r#"3.14"#;
         let ret = Lexer::new(json).run();
-        assert_eq!(ret, vec!["3.14"]);
+        let expected = vec![Token::Number(String::from("3.14"))];
+        assert!(ret.eq(&expected));
     }
 
     #[test]
     fn binint_number_value() {
         let json = r#"6.62607e-34"#;
         let ret = Lexer::new(json).run();
-        assert_eq!(ret, vec!["6.62607e-34"]);
+        let expected = vec![Token::Number(String::from("6.62607e-34"))];
+        assert!(ret.eq(&expected));
     }
 
     #[test]
     fn true_value() {
         let json = r#"true"#;
         let ret = Lexer::new(json).run();
-        assert_eq!(ret, vec!["true"]);
+        let expected = vec![Token::True];
+        assert!(ret.eq(&expected));
     }
 
     #[test]
     fn false_value() {
         let json = r#"false"#;
         let ret = Lexer::new(json).run();
-        assert_eq!(ret, vec!["false"]);
+        let expected = vec![Token::False];
+        assert!(ret.eq(&expected));
     }
 
     #[test]
     fn null_value() {
         let json = r#"null"#;
         let ret = Lexer::new(json).run();
-        assert_eq!(ret, vec!["null"]);
+        let expected = vec![Token::Null];
+        assert!(ret.eq(&expected));
     }
 
     #[test]
     fn string_value() {
         let json = r#""abc""#;
         let ret = Lexer::new(json).run();
-        assert_eq!(ret, vec!["\"", "abc", "\""]);
+        let expected = vec![
+            Token::DoubleQuote,
+            Token::String(String::from("abc")),
+            Token::DoubleQuote,
+        ];
+        assert!(ret.eq(&expected));
     }
 
     #[test]
@@ -229,95 +262,93 @@ mod tests {
           "z": {"a": 1, "b": {"c": 2.5}},
         }"#;
         let ret = Lexer::new(json).run();
-        assert_eq!(
-            ret,
-            vec![
-                "{",
-                "\"",
-                "name",
-                "\"",
-                ":",
-                "\"",
-                "Yuhei Nakasaka",
-                "\"",
-                ",",
-                "\"",
-                "age",
-                "\"",
-                ":",
-                "32",
-                ",",
-                "\"",
-                "is_programmer",
-                "\"",
-                ":",
-                "true",
-                ",",
-                "\"",
-                "is_married",
-                "\"",
-                ":",
-                "false",
-                ",",
-                "\"",
-                "sex",
-                "\"",
-                ":",
-                "null",
-                ",",
-                "\"",
-                "x",
-                "\"",
-                ":",
-                "[",
-                "1.2",
-                ",",
-                "2",
-                ",",
-                "3.5",
-                "]",
-                ",",
-                "\"",
-                "y",
-                "\"",
-                ":",
-                "[",
-                "\"",
-                "a",
-                "\"",
-                ",",
-                "\"",
-                "b",
-                "\"",
-                "]",
-                ",",
-                "\"",
-                "z",
-                "\"",
-                ":",
-                "{",
-                "\"",
-                "a",
-                "\"",
-                ":",
-                "1",
-                ",",
-                "\"",
-                "b",
-                "\"",
-                ":",
-                "{",
-                "\"",
-                "c",
-                "\"",
-                ":",
-                "2.5",
-                "}",
-                "}",
-                ",",
-                "}"
-            ]
-        );
+        let expected = vec![
+            Token::LeftBrace,
+            Token::DoubleQuote,
+            Token::String(String::from("name")),
+            Token::DoubleQuote,
+            Token::Colon,
+            Token::DoubleQuote,
+            Token::String(String::from("Yuhei Nakasaka")),
+            Token::DoubleQuote,
+            Token::Comma,
+            Token::DoubleQuote,
+            Token::String(String::from("age")),
+            Token::DoubleQuote,
+            Token::Colon,
+            Token::Number(String::from("32")),
+            Token::Comma,
+            Token::DoubleQuote,
+            Token::String(String::from("is_programmer")),
+            Token::DoubleQuote,
+            Token::Colon,
+            Token::True,
+            Token::Comma,
+            Token::DoubleQuote,
+            Token::String(String::from("is_married")),
+            Token::DoubleQuote,
+            Token::Colon,
+            Token::False,
+            Token::Comma,
+            Token::DoubleQuote,
+            Token::String(String::from("sex")),
+            Token::DoubleQuote,
+            Token::Colon,
+            Token::Null,
+            Token::Comma,
+            Token::DoubleQuote,
+            Token::String(String::from("x")),
+            Token::DoubleQuote,
+            Token::Colon,
+            Token::LeftBracket,
+            Token::Number(String::from("1.2")),
+            Token::Comma,
+            Token::Number(String::from("2")),
+            Token::Comma,
+            Token::Number(String::from("3.5")),
+            Token::RightBracket,
+            Token::Comma,
+            Token::DoubleQuote,
+            Token::String(String::from("y")),
+            Token::DoubleQuote,
+            Token::Colon,
+            Token::LeftBracket,
+            Token::DoubleQuote,
+            Token::String(String::from("a")),
+            Token::DoubleQuote,
+            Token::Comma,
+            Token::DoubleQuote,
+            Token::String(String::from("b")),
+            Token::DoubleQuote,
+            Token::RightBracket,
+            Token::Comma,
+            Token::DoubleQuote,
+            Token::String(String::from("z")),
+            Token::DoubleQuote,
+            Token::Colon,
+            Token::LeftBrace,
+            Token::DoubleQuote,
+            Token::String(String::from("a")),
+            Token::DoubleQuote,
+            Token::Colon,
+            Token::Number(String::from("1")),
+            Token::Comma,
+            Token::DoubleQuote,
+            Token::String(String::from("b")),
+            Token::DoubleQuote,
+            Token::Colon,
+            Token::LeftBrace,
+            Token::DoubleQuote,
+            Token::String(String::from("c")),
+            Token::DoubleQuote,
+            Token::Colon,
+            Token::Number(String::from("2.5")),
+            Token::RightBrace,
+            Token::RightBrace,
+            Token::Comma,
+            Token::RightBrace,
+        ];
+        assert!(ret.eq(&expected));
     }
 
     // TODO: escaped string is not supported yet
