@@ -2,5 +2,5 @@
 members = [
   "sandbox",
   "merkle_tree",
-  "json_lexer",
+  "scrach_json_parser",
 ]
