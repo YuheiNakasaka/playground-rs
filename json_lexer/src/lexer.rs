@@ -14,7 +14,7 @@ pub enum Token {
     Comma,
     DoubleQuote,
     String(String),
-    Number(String),
+    Number(f64),
     True,
     False,
     Null,
@@ -102,10 +102,10 @@ impl Lexer {
                             None => break,
                         }
                     }
-                    tokens.push(Token::Number(tmp_string));
+                    let number = tmp_string.parse::<f64>().unwrap();
+                    tokens.push(Token::Number(number));
                 } else if char == DOUBLE_QUOTE {
                     self.scope = Scope::String;
-                    tokens.push(Token::DoubleQuote);
                     position += 1;
                 } else {
                     position += 1;
@@ -113,7 +113,6 @@ impl Lexer {
             } else {
                 if char == DOUBLE_QUOTE {
                     self.scope = Scope::Global;
-                    tokens.push(Token::DoubleQuote);
                     position += 1;
                 } else {
                     let mut tmp_string: String = String::new();
@@ -173,9 +172,9 @@ mod tests {
         let ret = Lexer::new(json).run();
         let expected = vec![
             Token::LeftBracket,
-            Token::Number(String::from("1")),
+            Token::Number(1.0),
             Token::Comma,
-            Token::Number(String::from("2")),
+            Token::Number(2.0),
             Token::RightBracket,
         ];
         assert!(ret.eq(&expected));
@@ -185,7 +184,7 @@ mod tests {
     fn number_value() {
         let json = r#"1"#;
         let ret = Lexer::new(json).run();
-        let expected = vec![Token::Number(String::from("1"))];
+        let expected = vec![Token::Number(1.0)];
         assert!(ret.eq(&expected));
     }
 
@@ -193,7 +192,7 @@ mod tests {
     fn numbers_value() {
         let json = r#"123"#;
         let ret = Lexer::new(json).run();
-        let expected = vec![Token::Number(String::from("123"))];
+        let expected = vec![Token::Number(123.0)];
         assert!(ret.eq(&expected));
     }
 
@@ -201,7 +200,7 @@ mod tests {
     fn float_number_value() {
         let json = r#"3.14"#;
         let ret = Lexer::new(json).run();
-        let expected = vec![Token::Number(String::from("3.14"))];
+        let expected = vec![Token::Number(3.14)];
         assert!(ret.eq(&expected));
     }
 
@@ -209,7 +208,8 @@ mod tests {
     fn binint_number_value() {
         let json = r#"6.62607e-34"#;
         let ret = Lexer::new(json).run();
-        let expected = vec![Token::Number(String::from("6.62607e-34"))];
+        println!("{:?}", ret);
+        let expected = vec![Token::Number(6.62607e-34)];
         assert!(ret.eq(&expected));
     }
 
@@ -241,11 +241,7 @@ mod tests {
     fn string_value() {
         let json = r#""abc""#;
         let ret = Lexer::new(json).run();
-        let expected = vec![
-            Token::DoubleQuote,
-            Token::String(String::from("abc")),
-            Token::DoubleQuote,
-        ];
+        let expected = vec![Token::String(String::from("abc"))];
         assert!(ret.eq(&expected));
     }
 
@@ -264,85 +260,57 @@ mod tests {
         let ret = Lexer::new(json).run();
         let expected = vec![
             Token::LeftBrace,
-            Token::DoubleQuote,
             Token::String(String::from("name")),
-            Token::DoubleQuote,
             Token::Colon,
-            Token::DoubleQuote,
             Token::String(String::from("Yuhei Nakasaka")),
-            Token::DoubleQuote,
             Token::Comma,
-            Token::DoubleQuote,
             Token::String(String::from("age")),
-            Token::DoubleQuote,
             Token::Colon,
-            Token::Number(String::from("32")),
+            Token::Number(32.0),
             Token::Comma,
-            Token::DoubleQuote,
             Token::String(String::from("is_programmer")),
-            Token::DoubleQuote,
             Token::Colon,
             Token::True,
             Token::Comma,
-            Token::DoubleQuote,
             Token::String(String::from("is_married")),
-            Token::DoubleQuote,
             Token::Colon,
             Token::False,
             Token::Comma,
-            Token::DoubleQuote,
             Token::String(String::from("sex")),
-            Token::DoubleQuote,
             Token::Colon,
             Token::Null,
             Token::Comma,
-            Token::DoubleQuote,
             Token::String(String::from("x")),
-            Token::DoubleQuote,
             Token::Colon,
             Token::LeftBracket,
-            Token::Number(String::from("1.2")),
+            Token::Number(1.2),
             Token::Comma,
-            Token::Number(String::from("2")),
+            Token::Number(2.0),
             Token::Comma,
-            Token::Number(String::from("3.5")),
+            Token::Number(3.5),
             Token::RightBracket,
             Token::Comma,
-            Token::DoubleQuote,
             Token::String(String::from("y")),
-            Token::DoubleQuote,
             Token::Colon,
             Token::LeftBracket,
-            Token::DoubleQuote,
             Token::String(String::from("a")),
-            Token::DoubleQuote,
             Token::Comma,
-            Token::DoubleQuote,
             Token::String(String::from("b")),
-            Token::DoubleQuote,
             Token::RightBracket,
             Token::Comma,
-            Token::DoubleQuote,
             Token::String(String::from("z")),
-            Token::DoubleQuote,
             Token::Colon,
             Token::LeftBrace,
-            Token::DoubleQuote,
             Token::String(String::from("a")),
-            Token::DoubleQuote,
             Token::Colon,
-            Token::Number(String::from("1")),
+            Token::Number(1.0),
             Token::Comma,
-            Token::DoubleQuote,
             Token::String(String::from("b")),
-            Token::DoubleQuote,
             Token::Colon,
             Token::LeftBrace,
-            Token::DoubleQuote,
             Token::String(String::from("c")),
-            Token::DoubleQuote,
             Token::Colon,
-            Token::Number(String::from("2.5")),
+            Token::Number(2.5),
             Token::RightBrace,
             Token::RightBrace,
             Token::Comma,
